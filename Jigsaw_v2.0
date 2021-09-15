@@ -1,0 +1,113 @@
+import pygame
+from PIL import Image
+import time
+import random
+import cv2
+import numpy
+
+#wyswietla kawałki jako cały obrazek
+def showSlices():
+    xStep = 0
+    yStep = 0
+    for a in range(0,xSlices ):
+        for b in range(0,ySlices):
+            imageConverted = imagesCropped[a][b]
+            if imageConverted == None:
+                continue
+            # konwertuję PIL.image.image na pygame surface
+            mode = imageConverted.mode
+            size = imageConverted.size
+            data = imageConverted.tobytes()
+            py_image = pygame.image.fromstring(data, size, mode)
+            window.blit(py_image,((width/xSlices)*a,(height/ySlices)*b))
+
+def swapPictures(xChange,yChange,emptySlicePosX,emptySlicePosY):
+
+
+    imagesCropped[emptySlicePosX][emptySlicePosY], imagesCropped[emptySlicePosX+xChange][emptySlicePosY+yChange],\
+    imagesCropped[emptySlicePosX][emptySlicePosY], imagesCropped[emptySlicePosX][emptySlicePosY]= \
+    imagesCropped[emptySlicePosX][emptySlicePosY], imagesCropped[emptySlicePosX][emptySlicePosY],\
+    imagesCropped[emptySlicePosX][emptySlicePosY], imagesCropped[emptySlicePosX+xChange][emptySlicePosY+yChange]
+
+    emptySlicePosX = emptySlicePosX + xChange
+    emptySlicePosY = emptySlicePosY + yChange
+
+    return emptySlicePosX, emptySlicePosY,imagesCropped
+
+def shuffleImagesCroppedList(imagesCropped):
+    random.shuffle(imagesCropped[:1])
+    for a in range(len(imagesCropped)-1):
+        random.shuffle(imagesCropped[a])
+    return imagesCropped
+
+
+pygame.init()
+width = 900
+height = 600
+screenSize = (width,height)
+window = pygame.display.set_mode((screenSize))
+
+image = Image.open('picture.JPG')
+imageWidth, imageHeight = image.size
+xSlices = 4 # liczba pocięć w pionie
+xStep = imageWidth/xSlices
+ySlices = 4 # liczba pocięć w poziomie
+yStep = imageHeight/ySlices
+
+#tworzę pustą tablicę z None  kawałki zdjęć
+imagesCropped = []
+for a in range (xSlices):
+  imagesCropped.append([])
+for a in imagesCropped:
+  for b in range(ySlices):
+    a.append(None)
+
+
+# tworzę tablicę z kawałkami zdjęć
+for a in range (xSlices):
+    for b in range(ySlices):
+        if (a == xSlices-1 and b == ySlices-1):  #jeżeli jest ostatni obrazek to zrób pusty
+            imagesCropped[a][b] = None
+            emptySlicePosX= a
+            emptySlicePosY = b
+        else:
+            image = Image.open('picture.JPG')
+            imageCropped =image.crop((a*xStep,b*yStep,a*xStep+xStep,b*yStep+yStep))
+            imagesCropped[a][b] = imageCropped
+
+
+imagesCroppedOrigin = imagesCropped
+imagesCropped = shuffleImagesCroppedList(imagesCropped).copy()
+
+
+
+counter=0
+solved = False
+run = True
+
+while run:
+    window.fill((0, 0, 0))
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            run = False
+    showSlices()
+    #print(emptySlicePosX,emptySlicePosY)
+    if not solved:
+        if event.type == pygame.KEYDOWN:
+            counter= counter +1
+            print(counter)
+            time.sleep(0.3)
+            if event.key == pygame.K_UP and emptySlicePosY>0:
+                emptySlicePosX, emptySlicePosY, imagesCropped = swapPictures(0,-1,emptySlicePosX,emptySlicePosY )
+                #time.sleep(0.4)
+            if event.key == pygame.K_DOWN and emptySlicePosY<(ySlices-1):
+                emptySlicePosX, emptySlicePosY, imagesCropped = swapPictures(0,1,emptySlicePosX,emptySlicePosY )
+                #time.sleep(0.4)
+            if event.key == pygame.K_LEFT and emptySlicePosX>0:
+                emptySlicePosX, emptySlicePosY, imagesCropped = swapPictures(-1, 0, emptySlicePosX, emptySlicePosY)
+                #time.sleep(0.4)
+            if event.key == pygame.K_RIGHT and emptySlicePosX<(ySlices-1):
+                emptySlicePosX, emptySlicePosY, imagesCropped = swapPictures(1,0,emptySlicePosX,emptySlicePosY )
+                #time.sleep(0.4)
+
+    pygame.display.update()
